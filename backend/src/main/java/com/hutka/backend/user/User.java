@@ -6,6 +6,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @Entity
 @Table (name ="users")
@@ -51,6 +52,9 @@ public class User {
 
     @Column(nullable = false)
     private boolean hasPddDiscount = false;
+
+    @Column(precision = 3, scale = 2)
+    private BigDecimal rating;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
