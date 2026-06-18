@@ -5,6 +5,10 @@ import com.hutka.backend.booking.enums.BookingStatus;
 import com.hutka.backend.booking.repository.BookingRepository;
 import com.hutka.backend.car.entity.Car;
 import com.hutka.backend.car.repository.CarRepository;
+import com.hutka.backend.exception.BadRequestException;
+import com.hutka.backend.exception.ConflictException;
+import com.hutka.backend.exception.ForbiddenException;
+import com.hutka.backend.exception.NotFoundException;
 import com.hutka.backend.review.dto.ReviewRequest;
 import com.hutka.backend.review.dto.ReviewResponse;
 import com.hutka.backend.review.entity.Review;
@@ -13,7 +17,6 @@ import com.hutka.backend.user.User;
 import com.hutka.backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,23 +36,22 @@ public class ReviewService {
 
     public ReviewResponse leaveCarReview(ReviewRequest request, UUID reviewerId) {
         Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
 
         if (!booking.getRenter().getId().equals(reviewerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() != BookingStatus.COMPLETED) {
-            throw new RuntimeException("Can only review completed bookings");
+            throw new BadRequestException("Can only review completed bookings");
         }
 
         if (reviewRepository.existsByBookingId(booking.getId())) {
-            throw new RuntimeException("Review already exists for this booking");
+            throw new ConflictException("Review already exists for this booking");
         }
 
-        // FIX 1: проверка на null перед unboxing
         if (request.getCarRating() == null || request.getCarRating() < 1 || request.getCarRating() > 5) {
-            throw new RuntimeException("Car rating must be between 1 and 5");
+            throw new BadRequestException("Car rating must be between 1 and 5");
         }
 
         Review review = Review.builder()
@@ -71,25 +73,24 @@ public class ReviewService {
 
     public ReviewResponse leaveUserReview(ReviewRequest request, UUID reviewerId) {
         Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
 
         if (!booking.getCar().getOwner().getId().equals(reviewerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() != BookingStatus.COMPLETED) {
-            throw new RuntimeException("Can only review completed bookings");
+            throw new BadRequestException("Can only review completed bookings");
         }
 
-        // FIX 1: проверка на null перед unboxing
         if (request.getUserRating() == null || request.getUserRating() < 1 || request.getUserRating() > 5) {
-            throw new RuntimeException("User rating must be between 1 and 5");
+            throw new BadRequestException("User rating must be between 1 and 5");
         }
 
-        // FIX 2: защита от повторного отзыва партнёра
         Review review = reviewRepository.findByBookingId(booking.getId()).orElse(null);
+
         if (review != null && review.getUserRating() != null) {
-            throw new RuntimeException("User review already submitted for this booking");
+            throw new ConflictException("User review already submitted for this booking");
         }
 
         if (review == null) {
@@ -132,7 +133,7 @@ public class ReviewService {
         Double avg = reviewRepository.findAverageCarRating(carId);
         if (avg != null) {
             Car car = carRepository.findById(carId)
-                    .orElseThrow(() -> new RuntimeException("Car not found"));
+                    .orElseThrow(() -> new NotFoundException("Car not found"));
             car.setRating(BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP));
             carRepository.save(car);
         }
@@ -142,7 +143,7 @@ public class ReviewService {
         Double avg = reviewRepository.findAverageUserRating(userId);
         if (avg != null) {
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new NotFoundException("User not found"));
             user.setRating(BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP));
             userRepository.save(user);
         }

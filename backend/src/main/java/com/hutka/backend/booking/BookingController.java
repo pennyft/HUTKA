@@ -54,8 +54,10 @@ public class BookingController {
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable UUID bookingId) {
-        return ResponseEntity.ok(bookingService.getBookingById(bookingId));
+    public ResponseEntity<BookingResponse> getBookingById(
+            @PathVariable UUID bookingId,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(bookingService.getBookingById(bookingId, user));
     }
 
     @GetMapping("/my")

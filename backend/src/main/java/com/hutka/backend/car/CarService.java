@@ -6,6 +6,8 @@ import com.hutka.backend.car.dto.CarResponse;
 import com.hutka.backend.car.entity.Car;
 import com.hutka.backend.car.enums.CarStatus;
 import com.hutka.backend.car.repository.CarRepository;
+import com.hutka.backend.exception.ForbiddenException;
+import com.hutka.backend.exception.NotFoundException;
 import com.hutka.backend.user.User;
 import com.hutka.backend.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +54,7 @@ public class CarService {
         Car car = getCarOrThrow(carId);
 
         if (!car.getOwner().getId().equals(ownerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         applyCarRequest(car, request);
@@ -66,10 +68,13 @@ public class CarService {
         Car car = getCarOrThrow(carId);
 
         if (!car.getOwner().getId().equals(ownerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
-        carRepository.delete(car);
+        // #7 — мягкое удаление: помечаем INACTIVE вместо физического удаления
+        // чтобы не нарушать FK с таблицей bookings
+        car.setStatus(CarStatus.INACTIVE);
+        carRepository.save(car);
     }
 
     // ───── ОБЩИЕ ─────
@@ -110,14 +115,17 @@ public class CarService {
     }
 
     public void deleteCarByModerator(UUID carId) {
-        carRepository.delete(getCarOrThrow(carId));
+        Car car = getCarOrThrow(carId);
+        // #7 — мягкое удаление: помечаем INACTIVE вместо физического удаления
+        car.setStatus(CarStatus.INACTIVE);
+        carRepository.save(car);
     }
 
     // ───── ПРИВАТНЫЕ МЕТОДЫ ─────
 
     private Car getCarOrThrow(UUID carId) {
         return carRepository.findById(carId)
-                .orElseThrow(() -> new RuntimeException("Car not found"));
+                .orElseThrow(() -> new NotFoundException("Car not found"));
     }
 
     private void applyCarRequest(Car car, CarRequest request) {

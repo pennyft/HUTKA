@@ -46,6 +46,18 @@ public class JwtFilter extends OncePerRequestFilter {
         String email = jwtService.extractEmail(token);
         User user = userService.findByEmail(email);
 
+        // Блокируем UNVERIFIED пользователей на всех маршрутах кроме /api/v1/auth/**
+        String path = request.getRequestURI();
+        if (user.getStatus() == com.hutka.backend.user.UserStatus.UNVERIFIED
+                && !path.startsWith("/api/v1/auth/")) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    "{\"status\":403,\"error\":\"Forbidden\",\"message\":\"Email not verified\"}"
+            );
+            return;
+        }
+
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
                         user,

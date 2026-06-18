@@ -12,7 +12,11 @@ import com.hutka.backend.car.entity.Car;
 import com.hutka.backend.car.enums.BookingMode;
 import com.hutka.backend.car.enums.CarStatus;
 import com.hutka.backend.car.repository.CarRepository;
+import com.hutka.backend.exception.BadRequestException;
+import com.hutka.backend.exception.ForbiddenException;
+import com.hutka.backend.exception.NotFoundException;
 import com.hutka.backend.user.User;
+import com.hutka.backend.user.UserRole;
 import com.hutka.backend.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,10 +40,10 @@ public class BookingService {
 
     public BookingResponse createBooking(BookingRequest request, UUID renterId) {
         Car car = carRepository.findById(request.getCarId())
-                .orElseThrow(() -> new RuntimeException("Car not found"));
+                .orElseThrow(() -> new NotFoundException("Car not found"));
 
         if (car.getStatus() != CarStatus.ACTIVE) {
-            throw new RuntimeException("Car is not available");
+            throw new BadRequestException("Car is not available");
         }
 
         boolean hasConflict = bookingRepository
@@ -51,18 +55,16 @@ public class BookingService {
                 );
 
         if (hasConflict) {
-            throw new RuntimeException("Car is already booked for this period");
+            throw new BadRequestException("Car is already booked for this period");
         }
 
         User renter = userService.findById(renterId);
 
-        // Расчёт цены через минуты чтобы корректно считать дробные часы
         long minutes = Duration.between(request.getStartTime(), request.getEndTime()).toMinutes();
         BigDecimal totalPrice = car.getPricePerHour()
                 .multiply(BigDecimal.valueOf(minutes))
                 .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
 
-        // Скидка ПДД — 10%, сгорает после применения
         if (renter.isHasPddDiscount()) {
             totalPrice = totalPrice.multiply(BigDecimal.valueOf(0.90))
                     .setScale(2, RoundingMode.HALF_UP);
@@ -91,12 +93,12 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getRenter().getId().equals(renterId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() == BookingStatus.ACTIVE ||
                 booking.getStatus() == BookingStatus.COMPLETED) {
-            throw new RuntimeException("Cannot cancel this booking");
+            throw new BadRequestException("Cannot cancel this booking");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -108,19 +110,18 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getRenter().getId().equals(renterId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new RuntimeException("Booking is not confirmed");
+            throw new BadRequestException("Booking is not confirmed");
         }
 
-        // Проверка наличия фото "до"
-        boolean hasBeforePhoto = bookingPhotoRepository
+        boolean noBeforePhoto = bookingPhotoRepository
                 .findByBookingIdAndPhotoType(bookingId, PhotoType.BEFORE)
                 .isEmpty();
-        if (hasBeforePhoto) {
-            throw new RuntimeException("Before photos required to start the trip");
+        if (noBeforePhoto) {
+            throw new BadRequestException("Before photos required to start the trip");
         }
 
         booking.setStatus(BookingStatus.ACTIVE);
@@ -132,19 +133,18 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getRenter().getId().equals(renterId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() != BookingStatus.ACTIVE) {
-            throw new RuntimeException("Booking is not active");
+            throw new BadRequestException("Booking is not active");
         }
 
-        // Проверка наличия фото "после"
-        boolean hasAfterPhoto = bookingPhotoRepository
+        boolean noAfterPhoto = bookingPhotoRepository
                 .findByBookingIdAndPhotoType(bookingId, PhotoType.AFTER)
                 .isEmpty();
-        if (hasAfterPhoto) {
-            throw new RuntimeException("After photos required to complete the trip");
+        if (noAfterPhoto) {
+            throw new BadRequestException("After photos required to complete the trip");
         }
 
         booking.setStatus(BookingStatus.COMPLETED);
@@ -152,8 +152,18 @@ public class BookingService {
         return toBookingResponse(booking);
     }
 
-    public BookingResponse getBookingById(UUID bookingId) {
-        return toBookingResponse(getBookingOrThrow(bookingId));
+    public BookingResponse getBookingById(UUID bookingId, User requestingUser) {
+        Booking booking = getBookingOrThrow(bookingId);
+
+        boolean isAdmin = requestingUser.getRole() == UserRole.ADMIN;
+        boolean isRenter = booking.getRenter().getId().equals(requestingUser.getId());
+        boolean isOwner = booking.getCar().getOwner().getId().equals(requestingUser.getId());
+
+        if (!isAdmin && !isRenter && !isOwner) {
+            throw new ForbiddenException("Access denied");
+        }
+
+        return toBookingResponse(booking);
     }
 
     public List<BookingResponse> getMyBookings(UUID renterId) {
@@ -169,11 +179,11 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getCar().getOwner().getId().equals(ownerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new RuntimeException("Booking is not pending");
+            throw new BadRequestException("Booking is not pending");
         }
 
         booking.setStatus(BookingStatus.CONFIRMED);
@@ -185,11 +195,11 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getCar().getOwner().getId().equals(ownerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new RuntimeException("Booking is not pending");
+            throw new BadRequestException("Booking is not pending");
         }
 
         booking.setStatus(BookingStatus.REJECTED);
@@ -202,7 +212,7 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getCar().getOwner().getId().equals(ownerId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -223,7 +233,7 @@ public class BookingService {
         Booking booking = getBookingOrThrow(bookingId);
 
         if (!booking.getRenter().getId().equals(renterId)) {
-            throw new RuntimeException("Access denied");
+            throw new ForbiddenException("Access denied");
         }
 
         BookingPhoto photo = BookingPhoto.builder()
@@ -248,7 +258,7 @@ public class BookingService {
 
     private Booking getBookingOrThrow(UUID bookingId) {
         return bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
