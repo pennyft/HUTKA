@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hutka-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-hutka}
+      POSTGRES_USER: ${DB_USER:-hutka}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hutka}
+    ports:
+      - "5433:5432"
+    volumes:
+      - hutka_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-hutka}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: hutka-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+volumes:
+  hutka_pg_data:
