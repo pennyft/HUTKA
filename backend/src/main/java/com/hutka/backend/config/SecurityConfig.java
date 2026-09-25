@@ -19,11 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Раздел 17.1: stateless JWT-авторизация для клиентских приложений.
- * Сессионная конфигурация для админки будет добавлена отдельным SecurityFilterChain
- * при разработке пакета adminapi.
- */
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
