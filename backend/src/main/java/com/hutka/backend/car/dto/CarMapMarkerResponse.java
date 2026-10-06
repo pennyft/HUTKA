@@ -1,5 +1,7 @@
 package com.hutka.backend.car.dto;
 
+import com.hutka.backend.car.enums.CarStatus;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -8,5 +10,5 @@ public record CarMapMarkerResponse(
         BigDecimal latitude,
         BigDecimal longitude,
         BigDecimal pricePerHour,
-        String status
+        CarStatus status
 ) {}

@@ -1,5 +1,6 @@
 package com.hutka.backend.auth.jwt;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,8 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
+    private static final int MIN_SECRET_BYTES = 32; // HS256 требует ключ не короче 256 бит
+
     private final SecretKey key;
     private final long expirationMs;
 
@@ -20,7 +23,12 @@ public class JwtService {
             @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.expiration-ms}") long expirationMs
     ) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "app.jwt.secret должен быть не короче " + MIN_SECRET_BYTES + " байт (256 бит) для HS256");
+        }
+        this.key = Keys.hmacShaKeyFor(secretBytes);
         this.expirationMs = expirationMs;
     }
 
@@ -44,7 +52,7 @@ public class JwtService {
         return parseClaims(token).getIssuedAt();
     }
 
-    private io.jsonwebtoken.Claims parseClaims(String token) {
+    private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
                 .build()

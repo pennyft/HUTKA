@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -84,9 +85,10 @@ public class GmailEmailService implements EmailService {
             helper.setText(html, true);
             mailSender.send(message);
             log.info("Email sent to {}: {}", toEmail, subject);
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
+            // MailException (unchecked) — это то, что реально бросает JavaMailSender.send при сбое SMTP
             log.error("Failed to send email to {}: {}", toEmail, e.getMessage());
-            throw new RuntimeException("Не удалось отправить письмо", e);
+            throw new EmailDeliveryException("Не удалось отправить письмо", e);
         }
     }
 }

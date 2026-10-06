@@ -1,7 +1,11 @@
 package com.hutka.backend.car;
 
+import com.hutka.backend.car.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -41,11 +45,13 @@ public class Car {
     @Column(name = "mileage_km", nullable = false)
     private Integer mileageKm;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "fuel_type", nullable = false)
-    private String fuelType;
+    private FuelType fuelType;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String transmission;
+    private Transmission transmission;
 
     @Column(nullable = false)
     private Integer seats;
@@ -65,11 +71,14 @@ public class Car {
     @Column(name = "price_per_hour", nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerHour;
 
+    @Column(length = 2000)
     private String description;
 
+    // @BatchSize: фото подгружаются пачками по 50 машин, а не отдельным запросом на каждую (N+1 в каталоге)
     @ElementCollection
     @CollectionTable(name = "car_photos", joinColumns = @JoinColumn(name = "car_id"))
-    @Column(name = "url", nullable = false)
+    @Column(name = "url", nullable = false, length = 1024)
+    @BatchSize(size = 50)
     @Builder.Default
     private List<String> photos = new ArrayList<>();
 
@@ -82,23 +91,29 @@ public class Car {
     @Column(name = "inspection_expiry_date", nullable = false)
     private LocalDate inspectionExpiryDate;
 
+    // Hibernate 6 без @JdbcTypeCode отправляет String как varchar, и PostgreSQL отвергает запись в jsonb
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "availability_schedule", columnDefinition = "jsonb")
     private String availabilitySchedule;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "booking_mode", nullable = false)
-    private String bookingMode;
+    private BookingMode bookingMode;
 
-    /** Раздел 23.12: pending | approved | rejected — независимо от операционного status. */
+    /** Модерация заявки; независима от операционного status (раздел 9.3). */
+    @Enumerated(EnumType.STRING)
     @Column(name = "moderation_status", nullable = false)
     @Builder.Default
-    private String moderationStatus = "pending";
+    private ModerationStatus moderationStatus = ModerationStatus.pending;
 
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
-
-    @Column
-    private String status;
+    /** Раздел 22.2. По умолчанию available; в каталог машина попадает только после moderation_status = approved. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private CarStatus status = CarStatus.available;
 
     @Column(name = "is_hidden", nullable = false)
     @Builder.Default
@@ -108,6 +123,7 @@ public class Car {
     @Builder.Default
     private Integer noShowStrikes = 0;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "service_history", columnDefinition = "jsonb")
     private String serviceHistory;
 
@@ -120,6 +136,7 @@ public class Car {
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
-        if (moderationStatus == null) moderationStatus = "pending";
+        if (moderationStatus == null) moderationStatus = ModerationStatus.pending;
+        if (status == null) status = CarStatus.available;
     }
 }

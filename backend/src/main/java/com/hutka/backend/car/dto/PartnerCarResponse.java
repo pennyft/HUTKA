@@ -1,5 +1,9 @@
 package com.hutka.backend.car.dto;
 
+import com.hutka.backend.car.enums.BookingMode;
+import com.hutka.backend.car.enums.CarStatus;
+import com.hutka.backend.car.enums.ModerationStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -12,13 +16,14 @@ public record PartnerCarResponse(
         Integer year,
         String plateNumber,
         Integer mileageKm,
+        String address,
         BigDecimal pricePerHour,
         List<String> photos,
         LocalDate inspectionExpiryDate,
-        String bookingMode,
-        String moderationStatus,
+        BookingMode bookingMode,
+        ModerationStatus moderationStatus,
         String rejectionReason,
-        String status,
+        CarStatus status,
         boolean hidden,
         Integer noShowStrikes,
         BigDecimal ratingAvg

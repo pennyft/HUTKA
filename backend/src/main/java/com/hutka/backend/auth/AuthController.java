@@ -3,10 +3,9 @@ package com.hutka.backend.auth;
 import com.hutka.backend.auth.dto.*;
 import com.hutka.backend.auth.service.AuthService;
 import jakarta.validation.Valid;
-import com.hutka.backend.auth.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -29,6 +28,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyEmail(request));
     }
 
+    /** Всегда 200, даже если email неизвестен или уже подтверждён — чтобы нельзя было перебирать адреса. */
     @PostMapping("/resend-code")
     public ResponseEntity<Void> resendCode(@RequestParam String email) {
         authService.resendCode(email);
@@ -41,8 +41,8 @@ public class AuthController {
     }
 
     @PostMapping("/license")
-    public ResponseEntity<Void> submitLicense(Authentication authentication, @Valid @RequestBody LicenseRequest request) {
-        UUID userId = (UUID) authentication.getPrincipal();
+    public ResponseEntity<Void> submitLicense(@AuthenticationPrincipal UUID userId,
+                                              @Valid @RequestBody LicenseRequest request) {
         authService.submitLicense(userId, request);
         return ResponseEntity.ok().build();
     }

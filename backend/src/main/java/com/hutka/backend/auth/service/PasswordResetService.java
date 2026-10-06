@@ -22,12 +22,8 @@ public class PasswordResetService {
         return token;
     }
 
+    /** Атомарно читает и удаляет токен — повторно использовать его нельзя. */
     public String consumeToken(String token) {
-        String key = KEY_PREFIX + token;
-        String email = redisTemplate.opsForValue().get(key);
-        if (email != null) {
-            redisTemplate.delete(key);
-        }
-        return email;
+        return redisTemplate.opsForValue().getAndDelete(KEY_PREFIX + token);
     }
 }

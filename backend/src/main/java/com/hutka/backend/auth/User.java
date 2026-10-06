@@ -1,5 +1,6 @@
 package com.hutka.backend.auth;
 
+import com.hutka.backend.auth.enums.VerificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,8 +43,9 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
-    private String verificationStatus;
+    private VerificationStatus verificationStatus;
 
     @Column(name = "license_number")
     private String licenseNumber;
@@ -63,6 +65,6 @@ public class User {
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
-        if (verificationStatus == null) verificationStatus = "unverified";
+        if (verificationStatus == null) verificationStatus = VerificationStatus.unverified;
     }
 }

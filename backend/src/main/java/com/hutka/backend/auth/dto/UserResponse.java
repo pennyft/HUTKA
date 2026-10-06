@@ -1,5 +1,7 @@
 package com.hutka.backend.auth.dto;
 
+import com.hutka.backend.auth.enums.VerificationStatus;
+
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -11,6 +13,6 @@ public record UserResponse(
         boolean emailVerified,
         String phone,
         LocalDate birthDate,
-        String verificationStatus,
+        VerificationStatus verificationStatus,
         boolean isPartner
 ) {}

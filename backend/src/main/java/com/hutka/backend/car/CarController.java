@@ -2,6 +2,7 @@ package com.hutka.backend.car;
 
 import com.hutka.backend.car.dto.CarMapMarkerResponse;
 import com.hutka.backend.car.dto.CarResponse;
+import com.hutka.backend.car.service.CarService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-
+/** Раздел 23.2. Доступен гостю (см. SecurityConfig). */
 @RestController
 @RequestMapping("/cars")
 @RequiredArgsConstructor
@@ -30,7 +31,7 @@ public class CarController {
 
     @GetMapping("/{id}")
     public ResponseEntity<CarResponse> details(@PathVariable UUID id) {
-        return ResponseEntity.ok(toResponse(carService.findById(id)));
+        return ResponseEntity.ok(toResponse(carService.findPublicById(id)));
     }
 
     @GetMapping("/map")
