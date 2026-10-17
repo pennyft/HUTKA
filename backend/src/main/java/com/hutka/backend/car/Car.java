@@ -74,7 +74,7 @@ public class Car {
     @Column(length = 2000)
     private String description;
 
-    // @BatchSize: фото подгружаются пачками по 50 машин, а не отдельным запросом на каждую (N+1 в каталоге)
+    
     @ElementCollection
     @CollectionTable(name = "car_photos", joinColumns = @JoinColumn(name = "car_id"))
     @Column(name = "url", nullable = false, length = 1024)
@@ -91,7 +91,7 @@ public class Car {
     @Column(name = "inspection_expiry_date", nullable = false)
     private LocalDate inspectionExpiryDate;
 
-    // Hibernate 6 без @JdbcTypeCode отправляет String как varchar, и PostgreSQL отвергает запись в jsonb
+    
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "availability_schedule", columnDefinition = "jsonb")
     private String availabilitySchedule;
@@ -100,7 +100,7 @@ public class Car {
     @Column(name = "booking_mode", nullable = false)
     private BookingMode bookingMode;
 
-    /** Модерация заявки; независима от операционного status (раздел 9.3). */
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "moderation_status", nullable = false)
     @Builder.Default
@@ -109,7 +109,7 @@ public class Car {
     @Column(name = "rejection_reason")
     private String rejectionReason;
 
-    /** Раздел 22.2. По умолчанию available; в каталог машина попадает только после moderation_status = approved. */
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -139,4 +139,20 @@ public class Car {
         if (moderationStatus == null) moderationStatus = ModerationStatus.pending;
         if (status == null) status = CarStatus.available;
     }
+
+    
+    @Column(name = "hidden_by_strikes", nullable = false)
+    @Builder.Default
+    private boolean hiddenByStrikes = false;
+
+    /** 16.3: принудительное скрытие администратором (V15); партнёр снять его не может. Всегда идёт вместе с hidden = true. */
+    @Column(name = "hidden_by_admin", nullable = false)
+    @Builder.Default
+    private boolean hiddenByAdmin = false;
+
+    @Column(name = "hidden_by_admin_reason", length = 500)
+    private String hiddenByAdminReason;
+
+    @Column(name = "hidden_by_admin_at")
+    private Instant hiddenByAdminAt;
 }

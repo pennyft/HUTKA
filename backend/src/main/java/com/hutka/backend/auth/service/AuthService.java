@@ -48,7 +48,7 @@ public class AuthService {
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
 
-    /** Хэш-заглушка: login сравнивает пароль и для несуществующего email, чтобы время ответа не выдавало, есть ли аккаунт. */
+    
     private String dummyPasswordHash;
 
     @PostConstruct
@@ -56,16 +56,16 @@ public class AuthService {
         dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
-    /** Email хранится и ищется в нижнем регистре, иначе A@x.com и a@x.com — два разных аккаунта. */
+    
     private static String normalize(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
-    /**
-     * Без @Transactional намеренно: сохранение пользователя — отдельная короткая транзакция,
-     * а отправка письма (сетевой вызов) происходит уже после коммита и не держит соединение с БД.
-     * Если письмо не ушло — аккаунт остаётся, код можно запросить через /auth/resend-code (раздел 3.1).
-     */
+    
+
+
+
+
     public void register(RegisterRequest request) {
         String email = normalize(request.email());
 
@@ -93,7 +93,7 @@ public class AuthService {
         try {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
-            // гонка: два запроса с одним email прошли existsByEmail одновременно
+            
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже зарегистрирован");
         }
 
@@ -109,16 +109,17 @@ public class AuthService {
         }
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Неверный или истёкший код"));
+        requireNotBlocked(user);
         user.setEmailVerified(true);
         userRepository.save(user);
 
         return AuthResponse.bearer(jwtService.generateToken(user.getId(), user.getEmail()));
     }
 
-    /**
-     * Всегда завершается без ошибки: неизвестный email и уже подтверждённый email
-     * неотличимы от успешной отправки — иначе endpoint раскрывает список зарегистрированных адресов.
-     */
+    
+
+
+
     public void resendCode(String email) {
         String normalized = normalize(email);
         rateLimitService.check("resend-code:" + normalized, RESEND_MAX_ATTEMPTS, RESEND_WINDOW);
@@ -141,10 +142,10 @@ public class AuthService {
         if (user == null || !passwordOk) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Неверный email или пароль");
         }
+        requireNotBlocked(user);
         if (!user.isEmailVerified()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Подтвердите email перед входом");
         }
-
         rateLimitService.reset(limitKey);
         return AuthResponse.bearer(jwtService.generateToken(user.getId(), user.getEmail()));
     }
@@ -154,7 +155,7 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден"));
 
-        // Повторная подача не должна сбрасывать уже подтверждённый статус в pending
+        
         if (user.getVerificationStatus() == VerificationStatus.verified) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Водительское удостоверение уже подтверждено");
         }
@@ -169,10 +170,10 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    /**
-     * Ответ одинаков для существующего и несуществующего email, включая сбой SMTP:
-     * ошибка отправки логируется, но наружу не пробрасывается.
-     */
+    
+
+
+
     public void forgotPassword(ForgotPasswordRequest request) {
         String email = normalize(request.email());
         rateLimitService.check("forgot-password:" + email, FORGOT_MAX_ATTEMPTS, FORGOT_WINDOW);
@@ -200,6 +201,14 @@ public class AuthService {
         userRepository.save(user);
 
         sessionInvalidationService.invalidateAllSessions(user.getId());
+    }
+
+    /** 16.2: заблокированный пользователь не получает новый JWT; старые токены гасит AdminUserDirectoryService.block. */
+    private static void requireNotBlocked(User user) {
+        if (user.isBlocked()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Аккаунт заблокирован. Причина: " + user.getBlockedReason());
+        }
     }
 
     private void sendVerificationCode(String email) {

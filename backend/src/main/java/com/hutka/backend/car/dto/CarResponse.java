@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+/** distanceKm — расстояние до точки пользователя в списке каталога, если переданы lat и lng; иначе null. */
 public record CarResponse(
         UUID id,
         String make,
@@ -27,5 +28,6 @@ public record CarResponse(
         List<String> photos,
         BookingMode bookingMode,
         CarStatus status,
-        BigDecimal ratingAvg
+        BigDecimal ratingAvg,
+        BigDecimal distanceKm
 ) {}

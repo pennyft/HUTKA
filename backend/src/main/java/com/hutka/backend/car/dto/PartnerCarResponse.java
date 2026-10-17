@@ -25,6 +25,9 @@ public record PartnerCarResponse(
         String rejectionReason,
         CarStatus status,
         boolean hidden,
+        boolean hiddenByStrikes,
+        boolean hiddenByAdmin,
         Integer noShowStrikes,
-        BigDecimal ratingAvg
+        BigDecimal ratingAvg,
+        BigDecimal monthIncome
 ) {}

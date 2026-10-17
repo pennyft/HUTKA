@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,7 +33,10 @@ public class SecurityConfig {
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
 
+    // Order(2): цепочка администратора (AdminSecurityConfig, Order 1, только /admin/**) проверяется первой;
+    // эта цепочка без securityMatcher обслуживает всё остальное, поэтому должна идти последней
     @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -50,6 +54,8 @@ public class SecurityConfig {
                         // Разделы 2 и 4.1: гость видит каталог и карту без аккаунта (только чтение)
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Раздел 13, 17.1: handshake WebSocket; JWT проверяет StompAuthInterceptor на кадре CONNECT
+                        .requestMatchers("/ws", "/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -64,6 +70,8 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+        // Раздел 4.1: фронтенд читает общее число машин каталога из заголовка X-Total-Count (кросс-доменные запросы)
+        config.setExposedHeaders(List.of("X-Total-Count"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
