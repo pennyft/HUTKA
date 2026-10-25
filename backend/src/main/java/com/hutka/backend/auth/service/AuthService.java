@@ -74,9 +74,14 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Регистрация доступна только с " + MIN_AGE + " лет");
         }
-        if (userRepository.existsByEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже зарегистрирован");
-        }
+        // Неподтверждённый аккаунт не блокирует email: старая запись заменяется новой (created_at обновится).
+        userRepository.findByEmail(email).ifPresent(existing -> {
+            if (existing.isEmailVerified()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже зарегистрирован");
+            }
+            userRepository.deleteIfUnverified(existing.getId());
+            verificationCodeService.invalidate(email);
+        });
 
         User user = User.builder()
                 .firstName(request.firstName().trim())
@@ -97,7 +102,14 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже зарегистрирован");
         }
 
-        sendVerificationCode(email);
+        // Письмо не ушло — не оставляем «мусорный» аккаунт, иначе email залипнет как занятый.
+        try {
+            sendVerificationCode(email);
+        } catch (RuntimeException e) {
+            userRepository.deleteIfUnverified(user.getId());
+            verificationCodeService.invalidate(email);
+            throw e;
+        }
     }
 
     @Transactional

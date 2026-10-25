@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5433/hutka
-    username: ${DB_USER:hutka}
-    password: ${DB_PASSWORD:hutka}
+    username: hutka
+    password: hutka
 
   jpa:
     hibernate:
@@ -32,14 +32,14 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:}      # было прописано в файле
-    password: ${MAIL_PASSWORD:}      # было прописано в файле; задавать только окружением
+    username: adminemailfft@gmail.com     # было прописано в файле
+    password: eihj xzyc imra jmpn    # было прописано в файле; задавать только окружением
     properties:
       mail:
         smtp:
@@ -48,6 +48,15 @@ spring:
             enable: true
 
 app:
+  admin:
+    bootstrap-enabled: true
+    bootstrap-email: adminhutka@gmail.com
+    bootstrap-password: ${ADMIN_BOOTSTRAP_PASSWORD:HutkaAdmin2026!}
+
+  auth:
+    unverified-ttl-minutes: 60
+    unverified-sweep-interval-ms: 300000
+    unverified-sweep-initial-delay-ms: 60000
 
   payments:
     provider: fake                 # fake (по умолчанию) | bepaid (заготовка, ничего не делает)
@@ -86,10 +95,12 @@ app:
   pddtest:
     seed-enabled: true
     seed-active: true
-  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  # Адрес фронтенда (Vite dev-сервер). Бэк пускает по CORS и WebSocket только этот origin:
+  # без слэша в конце, без 127.0.0.1, схема и порт должны совпадать с адресом в браузере.
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   # НОВОЕ: адрес панели администратора (adminapi, CORS для /admin/**). Если панель на том же адресе, что и фронтенд клиентов,
   # можно оставить как есть
-  admin-base-url: ${ADMIN_BASE_URL:http://localhost:3000}
+  admin-base-url: ${ADMIN_BASE_URL:http://localhost:5173}
   jwt:
     secret: ${JWT_SECRET:change-me-to-a-real-random-secret-at-least-256-bits-long}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}

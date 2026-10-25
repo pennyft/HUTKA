@@ -32,6 +32,12 @@ public class VerificationCodeService {
         return code;
     }
 
+    /** Удаляет код и счётчик попыток (аккаунт удалён или регистрация отменена). */
+    public void invalidate(String email) {
+        redisTemplate.delete(CODE_PREFIX + email);
+        redisTemplate.delete(ATTEMPTS_PREFIX + email);
+    }
+
     public boolean verify(String email, String code) {
         String stored = redisTemplate.opsForValue().get(CODE_PREFIX + email);
         if (stored == null || code == null) {
