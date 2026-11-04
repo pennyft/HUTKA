@@ -29,7 +29,7 @@ public class AdminCarController {
 
     private final AdminCarService carService;
 
-    
+
     @GetMapping
     public AdminPage<AdminCarResponse> list(@RequestParam(required = false) ModerationStatus moderationStatus,
                                             @RequestParam(defaultValue = "false") boolean hiddenByStrikes,
@@ -37,6 +37,11 @@ public class AdminCarController {
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
         return carService.list(moderationStatus, hiddenByStrikes, hiddenByAdmin, page, size);
+    }
+
+    @GetMapping("/{id}")
+    public AdminCarResponse details(@PathVariable UUID id) {
+        return carService.details(id);
     }
 
     @PostMapping("/{id}/approve")

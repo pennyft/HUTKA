@@ -42,7 +42,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
-public class ёAiChatService {
+public class AiChatService {
 
     static final String MSG_UNAVAILABLE =
             "AI-помощник временно недоступен. Вы можете описать вопрос в обращении в поддержку — оператор ответит.";

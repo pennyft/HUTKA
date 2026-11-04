@@ -45,7 +45,7 @@ public class AdminCarService {
     private final AdminStrikeRepository strikes;
     private final NotificationService notifications;
 
-    
+
 
 
 
@@ -77,7 +77,16 @@ public class AdminCarService {
         return new AdminPage<>(total, items.stream().map(c -> toResponse(c, partners.get(c.getPartnerId()))).toList());
     }
 
-    
+    /** Одна машина для карточки администратора: те же данные, что в списке, вместе с контактами партнёра. */
+    @Transactional(readOnly = true)
+    public AdminCarResponse details(UUID carId) {
+        Car car = cars.findById(carId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Машина не найдена"));
+        User partner = users.findByIdIn(List.of(car.getPartnerId())).stream().findFirst().orElse(null);
+        return toResponse(car, partner);
+    }
+
+
     @Transactional
     public AdminCarResponse approve(UUID carId) {
         Car car = lockPending(carId);
@@ -107,7 +116,7 @@ public class AdminCarService {
         return toResponse(car, users.findByIdIn(List.of(car.getPartnerId())).stream().findFirst().orElse(null));
     }
 
-    
+
 
 
 

@@ -73,7 +73,8 @@ public class PartnerCarController {
                 car.getMileageKm(), car.getAddress(), car.getPricePerHour(), car.getPhotos(),
                 car.getInspectionExpiryDate(), car.getBookingMode(), car.getModerationStatus(),
                 car.getRejectionReason(), car.getStatus(), car.isHidden(), car.isHiddenByStrikes(), car.isHiddenByAdmin(),
-                car.getNoShowStrikes(), car.getRatingAvg(), monthIncome
+                car.getNoShowStrikes(), car.getRatingAvg(), monthIncome,
+                car.getDescription(), car.getAvailabilitySchedule(), car.getServiceHistory()
         );
     }
 }

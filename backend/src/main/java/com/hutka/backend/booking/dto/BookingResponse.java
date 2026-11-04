@@ -7,7 +7,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** Раздел 23.3: детали брони — фото до/после, статус, стоимость (6.2, 6.3). */
+/**
+ * Раздел 23.3: детали брони — фото до/после, статус, стоимость (6.2, 6.3).
+ * renterName — имя арендатора (только имя, без фамилии); заполняется только в списке броней партнёра
+ * (GET /partner/bookings), в остальных ответах null.
+ */
 public record BookingResponse(
         UUID id,
         UUID renterId,
@@ -27,5 +31,6 @@ public record BookingResponse(
         BigDecimal overdueHours,
         Instant confirmedAt,
         String declineReason,
-        Instant createdAt
+        Instant createdAt,
+        String renterName
 ) {}

@@ -9,6 +9,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * description, availabilitySchedule и serviceHistory возвращаются, чтобы форма правки показывала текущие значения.
+ * availabilitySchedule и serviceHistory — JSON-строки в том же виде, в каком их принимает UpdateCarRequest.
+ */
 public record PartnerCarResponse(
         UUID id,
         String make,
@@ -29,5 +33,8 @@ public record PartnerCarResponse(
         boolean hiddenByAdmin,
         Integer noShowStrikes,
         BigDecimal ratingAvg,
-        BigDecimal monthIncome
+        BigDecimal monthIncome,
+        String description,
+        String availabilitySchedule,
+        String serviceHistory
 ) {}

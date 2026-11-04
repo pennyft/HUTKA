@@ -74,7 +74,7 @@ public class User {
     @Column(name = "blocked_by_admin_id")
     private UUID blockedByAdminId;
 
-    /** 10.6, 21.1: реквизиты выплат партнёру (колонка есть с V1). JSON {"cardNumber","holderName"}. */
+    /** 10.6, 21.1: реквизиты выплат партнёру (колонка есть с V1). JSON {"cardNumberEnc","cardLast4","holderName"}; номер карты зашифрован. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payout_bank_details", columnDefinition = "jsonb")
     private String payoutBankDetails;

@@ -15,6 +15,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
 
+    /** Пользователи с заполненными реквизитами выплат (для разовой миграции формата хранения карты). */
+    List<User> findByPayoutBankDetailsIsNotNull();
+
     /** Неподтверждённые аккаунты, созданные раньше cutoff (кандидаты на удаление). */
     List<User> findByEmailVerifiedFalseAndCreatedAtBefore(Instant cutoff);
 

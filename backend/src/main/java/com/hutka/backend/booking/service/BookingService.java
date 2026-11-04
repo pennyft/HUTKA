@@ -20,6 +20,9 @@ import com.hutka.backend.car.enums.BookingMode;
 import com.hutka.backend.car.enums.CarStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -30,7 +33,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -50,6 +55,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class BookingService {
+
+    /** Порядок списка броней партнёра; id — для стабильных страниц при одинаковом planned_start_at. */
+    private static final Sort PARTNER_BOOKINGS_SORT =
+            Sort.by(Sort.Order.desc("plannedStartAt"), Sort.Order.desc("id"));
 
     private final BookingRepository bookingRepository;
     private final CarRepository carRepository;
@@ -240,20 +249,51 @@ public class BookingService {
                 .stream().map(this::toResponse).toList();
     }
 
-    /** Раздел 10.4: входящие брони по всем машинам партнёра с фильтрами по статусу, машине, дате. */
+    /** Раздел 10.4: входящие брони по всем машинам партнёра с фильтрами по статусу, машине, дате (весь список). */
     @Transactional(readOnly = true)
     public List<BookingResponse> findForPartner(UUID partnerId, BookingStatus status, UUID carId, Instant from, Instant to) {
         List<UUID> carIds = carRepository.findIdsByPartnerId(partnerId);
         if (carIds.isEmpty()) {
             return List.of();
         }
-        Specification<Booking> spec = BookingSpecifications.carIn(carIds)
+        List<Booking> bookings = bookingRepository.findAll(
+                partnerBookingsSpec(carIds, status, carId, from, to), PARTNER_BOOKINGS_SORT);
+        return toPartnerResponses(bookings);
+    }
+
+    /** Те же брони постранично (page с 0): у партнёра с большой историей полный список слишком тяжёлый. */
+    @Transactional(readOnly = true)
+    public Page<BookingResponse> findPageForPartner(UUID partnerId, BookingStatus status, UUID carId,
+                                                    Instant from, Instant to, int page, int size) {
+        List<UUID> carIds = carRepository.findIdsByPartnerId(partnerId);
+        PageRequest pageRequest = PageRequest.of(page, size, PARTNER_BOOKINGS_SORT);
+        if (carIds.isEmpty()) {
+            return Page.empty(pageRequest);
+        }
+        Page<Booking> result = bookingRepository.findAll(
+                partnerBookingsSpec(carIds, status, carId, from, to), pageRequest);
+        return new PageImpl<>(toPartnerResponses(result.getContent()), pageRequest, result.getTotalElements());
+    }
+
+    private static Specification<Booking> partnerBookingsSpec(List<UUID> carIds, BookingStatus status, UUID carId,
+                                                              Instant from, Instant to) {
+        return BookingSpecifications.carIn(carIds)
                 .and(BookingSpecifications.status(status))
                 .and(BookingSpecifications.car(carId))
                 .and(BookingSpecifications.plannedStartFrom(from))
                 .and(BookingSpecifications.plannedStartBefore(to));
-        return bookingRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "plannedStartAt"))
-                .stream().map(this::toResponse).toList();
+    }
+
+    /** Имена арендаторов подгружаются одним запросом на весь список (без N+1). Наружу — только имя, без фамилии. */
+    private List<BookingResponse> toPartnerResponses(List<Booking> bookings) {
+        if (bookings.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, String> names = new HashMap<>();
+        for (User renter : userRepository.findAllById(bookings.stream().map(Booking::getRenterId).distinct().toList())) {
+            names.put(renter.getId(), renter.getFirstName());
+        }
+        return bookings.stream().map(b -> toResponse(b, names.get(b.getRenterId()))).toList();
     }
 
     /** Бронь видят арендатор и партнёр машины; для остальных она «не существует» (404, а не 403 — как в CarService). */
@@ -350,13 +390,17 @@ public class BookingService {
     }
 
     private BookingResponse toResponse(Booking b) {
+        return toResponse(b, null);
+    }
+
+    private BookingResponse toResponse(Booking b, String renterName) {
         return new BookingResponse(
                 b.getId(), b.getRenterId(), b.getCarId(), b.getStatus(),
                 b.getPlannedStartAt(), b.getPlannedEndAt(), b.getActualStartAt(), b.getActualEndAt(),
                 List.copyOf(b.getPhotosBefore()), List.copyOf(b.getPhotosAfter()),
                 b.getPricePerHour(), b.getPriceEstimate(), b.getFinalPrice(),
                 b.isPddDiscountApplied(), b.getDiscountAmount(), b.getOverdueHours(),
-                b.getConfirmedAt(), b.getDeclineReason(), b.getCreatedAt());
+                b.getConfirmedAt(), b.getDeclineReason(), b.getCreatedAt(), renterName);
     }
 
     private static ResponseStatusException conflict(String message) {
