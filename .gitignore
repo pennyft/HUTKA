@@ -1,3 +1,7 @@
 .idea/
 *.iml
 backend/target/
+application-local.yml
+data/
+.env
+.env.*
