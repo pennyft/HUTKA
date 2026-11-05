@@ -122,13 +122,14 @@ app:
   payout:
     encryption-key: ${PAYOUT_ENCRYPTION_KEY}
 
-  # Загрузка фото в Cloudflare R2 (пустые значения = как в коде по умолчанию)
+  # Загрузка фото в S3-совместимое хранилище (Cloudflare R2 / Neon Object Storage; пустые значения = как в коде по умолчанию)
   uploads:
     r2:
       endpoint: ${R2_ENDPOINT:}
       bucket: ${R2_BUCKET:}
       access-key-id: ${R2_ACCESS_KEY_ID:}
       secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+      region: ${R2_REGION:auto}   # для R2 всегда auto; для Neon Object Storage укажите регион (например eu-central-1)
     public-base-url: ${UPLOADS_PUBLIC_BASE_URL:}
 
   geocoding:

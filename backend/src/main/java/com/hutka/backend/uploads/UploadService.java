@@ -23,6 +23,7 @@ public class UploadService {
     private final String accessKeyId;
     private final String secretAccessKey;
     private final String publicBaseUrl;
+    private final String region;
     private final long maxBytes;
     private final int ttlSeconds;
 
@@ -32,7 +33,8 @@ public class UploadService {
                          @Value("${app.uploads.r2.secret-access-key:}") String secretAccessKey,
                          @Value("${app.uploads.public-base-url:}") String publicBaseUrl,
                          @Value("${app.uploads.max-bytes:3145728}") long maxBytes,
-                         @Value("${app.uploads.ttl-seconds:300}") int ttlSeconds) {
+                         @Value("${app.uploads.ttl-seconds:300}") int ttlSeconds,
+                         @Value("${app.uploads.r2.region:auto}") String region) {
         this.endpoint = endpoint.trim();
         this.bucket = bucket.trim();
         this.accessKeyId = accessKeyId.trim();
@@ -40,6 +42,7 @@ public class UploadService {
         this.publicBaseUrl = publicBaseUrl.trim().replaceAll("/+$", "");
         this.maxBytes = maxBytes;
         this.ttlSeconds = ttlSeconds;
+        this.region = region.trim().isEmpty() ? "auto" : region.trim();
     }
 
     public PresignResponse presign(PresignRequest request) {
@@ -51,7 +54,7 @@ public class UploadService {
         }
         Instant now = Instant.now();
         String key = UploadKeys.objectKey(request.folder(), now, UUID.randomUUID());
-        String uploadUrl = R2Presigner.presignPut(endpoint, bucket, key, CONTENT_TYPE, accessKeyId, secretAccessKey, "auto", ttlSeconds, now);
+        String uploadUrl = R2Presigner.presignPut(endpoint, bucket, key, CONTENT_TYPE, accessKeyId, secretAccessKey, region, ttlSeconds, now);
         return new PresignResponse(uploadUrl, publicBaseUrl + "/" + key, CONTENT_TYPE, ttlSeconds);
     }
 }
