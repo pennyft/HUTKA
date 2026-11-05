@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/*
+ * Дизайн-токены Hutka. Направление: «Городской драйв», вариант «только графит».
+ * Светлый тёплый фон, белые поверхности, графит для текста и для главных действий (кнопки, выбранные фильтры,
+ * выбранный ценник). Цвет несут только статусы машин и броней. Использование: bg-bg, bg-surface, text-muted,
+ * border-line, bg-primary, bg-accent и т. д.
+ *
+ * Акцент сейчас совпадает с графитом. Токены accent оставлены отдельными, чтобы при желании можно было
+ * вернуть цветной акцент, поменяв только три значения ниже (--color-accent, --color-accent-hover, --color-accent-fg).
+ *
+ * Контраст текста (WCAG 2.x, считал по формуле относительной яркости):
+ *   fg на bg 17.44:1, fg на surface 18.88:1, white на accent и на primary 18.88:1 (hover #2b2b2b: 14.16:1);
+ *   muted на bg 4.95:1, на surface 5.36:1, на surface-2 4.56:1; danger на bg 5.98:1, на surface 6.47:1.
+ */
+@theme {
+  /* Основной (тёмный) и акцентный цвет */
+  --color-primary: #111111;
+  --color-primary-hover: #2b2b2b;
+  --color-primary-fg: #ffffff;
+  --color-accent: #111111;
+  --color-accent-hover: #2b2b2b;
+  --color-accent-fg: #ffffff;
+
+  /* Поверхности: страница → карточка/поле → вложенный блок и hover */
+  --color-bg: #f6f6f3;
+  --color-surface: #ffffff;
+  --color-surface-2: #edede8;
+  --color-line: #e0e0da;
+
+  /* Текст */
+  --color-fg: #111111;
+  --color-muted: #6b6b66;
+
+  /* Обратная связь */
+  --color-danger: #b91c1c;
+
+  /* Тени: у карточек почти нет, у всплывающих панелей (меню) заметная */
+  --shadow-card: 0 1px 2px rgba(17, 17, 17, 0.04);
+  --shadow-pop: 0 12px 32px -8px rgba(17, 17, 17, 0.18), 0 2px 6px rgba(17, 17, 17, 0.06);
+
+  /* Шрифт: Inter (self-hosted через @fontsource, без запросов к Google Fonts) */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* Статусы брони (Hutka.md, разд. 22.1) */
+  --color-booking-pending: #3b82f6;
+  --color-booking-active: #3b82f6;
+  --color-booking-finished: #71717a;
+  --color-booking-cancelled: #71717a;
+
+  /* Статусы машины (Hutka.md, разд. 22.2) */
+  --color-car-available: #22c55e;
+  --color-car-reserved: #f97316;
+  --color-car-in-trip: #3b82f6;
+  --color-car-under-review: #ef4444;
+}
+
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+  }
+}
+
+/*
+ * Ценники на карте каталога (Leaflet divIcon): разметка приходит строкой, поэтому стили обычным CSS.
+ * Цвета берутся из токенов выше, поэтому палитра меняется только в блоке @theme.
+ */
+.price-pill-icon {
+  background: transparent;
+  border: 0;
+}
+.price-pill {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 14px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: 700 12px/1.2 var(--font-sans);
+  box-shadow: 0 1px 3px rgba(17, 17, 17, 0.15);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.price-pill:hover {
+  transform: translate(-50%, -50%) scale(1.06);
+}
+.price-pill--active {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  border-color: var(--color-primary);
+  padding: 5px 11px;
+}
+.price-pill--busy {
+  background: var(--color-bg);
+  color: var(--color-muted);
+}
