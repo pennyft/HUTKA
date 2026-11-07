@@ -1,4 +1,3 @@
-
 const BACKEND = 'https://desktop-l75n630.tail9a2dcb.ts.net';
 
 export default {
@@ -11,21 +10,16 @@ export default {
             target.search = url.search;
 
             try {
-                const response = await fetch(target.toString(), {
-                    method: request.method,
-                    headers: request.headers,
+                // Request(url, request) копирует метод, заголовки и ТЕЛО исходного запроса
+                const response = await fetch(new Request(target.toString(), request), {
                     redirect: 'manual',
                 });
 
-                const body = await response.text();
-
-                return new Response(body, {
-                    status: response.status,
-                    headers: {
-                        'Content-Type': response.headers.get('Content-Type') || 'text/plain',
-                        'X-Debug-Backend': target.toString(),
-                    },
-                });
+                // 101 (WebSocket) возвращаем как есть; иначе добавляем отладочный заголовок к копии ответа
+                if (response.status === 101) return response;
+                const proxied = new Response(response.body, response);
+                proxied.headers.set('X-Debug-Backend', target.toString());
+                return proxied;
             } catch (error) {
                 return Response.json({
                     error: error.message,
