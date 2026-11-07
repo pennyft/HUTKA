@@ -72,7 +72,10 @@ public class AdminSecurityConfig {
 
     private CorsConfigurationSource adminCorsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(adminBaseUrl));
+        config.setAllowedOrigins(List.of(
+                adminBaseUrl,
+                "https://hutka.hutka.workers.dev"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

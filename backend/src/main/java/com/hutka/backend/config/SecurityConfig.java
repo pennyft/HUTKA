@@ -53,6 +53,9 @@ public class SecurityConfig {
                         ).permitAll()
                         // Разделы 2 и 4.1: гость видит каталог и карту без аккаунта (только чтение)
                         .requestMatchers(HttpMethod.GET, "/cars", "/cars/**").permitAll()
+                        // Локальные фото (app.uploads.mode=local): PUT защищён подписью в URL, GET отдаёт картинки в <img> без JWT
+                        .requestMatchers(HttpMethod.PUT, "/uploads/local").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/files/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Раздел 13, 17.1: handshake WebSocket; JWT проверяет StompAuthInterceptor на кадре CONNECT
                         .requestMatchers("/ws", "/ws/**").permitAll()
@@ -66,7 +69,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(frontendBaseUrl));
+        config.setAllowedOrigins(List.of(
+                frontendBaseUrl,
+                "https://hutka.hutka.workers.dev"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

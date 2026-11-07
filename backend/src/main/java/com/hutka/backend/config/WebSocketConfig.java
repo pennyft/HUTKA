@@ -27,9 +27,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // CORS из SecurityConfig на WebSocket-handshake не действует — origin задаётся здесь (тот же адрес фронтенда)
-        registry.addEndpoint("/ws").setAllowedOrigins(frontendBaseUrl);
+        registry.addEndpoint("/ws").setAllowedOrigins(
+                frontendBaseUrl,
+                "https://hutka.hutka.workers.dev"
+        );
     }
-
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.enableSimpleBroker("/queue");

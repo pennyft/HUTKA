@@ -27,6 +27,10 @@ public class PhotoUrlPolicy {
 
     private static final int MAX_LENGTH = 1024;
 
+    /** Только для разработки с локальным хранилищем фото: пускает http://localhost и http://127.0.0.1. */
+    @Value("${app.booking.photo-allow-local-http:false}")
+    private boolean allowLocalHttp;
+
     private final Set<String> exactHosts;
     private final List<String> wildcardSuffixes;
 
@@ -69,7 +73,13 @@ public class PhotoUrlPolicy {
         } catch (URISyntaxException e) {
             return false;
         }
-        if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) {
+        if (uri.getHost() == null || uri.getUserInfo() != null) {
+            return false;
+        }
+        boolean https = "https".equalsIgnoreCase(uri.getScheme());
+        boolean localHttp = allowLocalHttp && "http".equalsIgnoreCase(uri.getScheme())
+                && ("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()));
+        if (!https && !localHttp) {
             return false;
         }
         if (exactHosts.isEmpty() && wildcardSuffixes.isEmpty()) {

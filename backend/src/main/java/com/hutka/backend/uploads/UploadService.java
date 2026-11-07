@@ -26,6 +26,8 @@ public class UploadService {
     private final String region;
     private final long maxBytes;
     private final int ttlSeconds;
+    private final boolean local;
+    private final LocalUploadStore localStore;
 
     public UploadService(@Value("${app.uploads.r2.endpoint:}") String endpoint,
                          @Value("${app.uploads.r2.bucket:}") String bucket,
@@ -34,7 +36,9 @@ public class UploadService {
                          @Value("${app.uploads.public-base-url:}") String publicBaseUrl,
                          @Value("${app.uploads.max-bytes:3145728}") long maxBytes,
                          @Value("${app.uploads.ttl-seconds:300}") int ttlSeconds,
-                         @Value("${app.uploads.r2.region:auto}") String region) {
+                         @Value("${app.uploads.r2.region:auto}") String region,
+                         @Value("${app.uploads.mode:r2}") String mode,
+                         LocalUploadStore localStore) {
         this.endpoint = endpoint.trim();
         this.bucket = bucket.trim();
         this.accessKeyId = accessKeyId.trim();
@@ -43,9 +47,19 @@ public class UploadService {
         this.maxBytes = maxBytes;
         this.ttlSeconds = ttlSeconds;
         this.region = region.trim().isEmpty() ? "auto" : region.trim();
+        this.local = "local".equalsIgnoreCase(mode.trim());
+        this.localStore = localStore;
     }
 
     public PresignResponse presign(PresignRequest request) {
+        if (local) {
+            // app.uploads.mode=local: файл принимает сам бэкенд (LocalUploadController), сжимает и кладёт в папку на диске
+            if (request.size() > maxBytes) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Фото больше " + Math.max(1, maxBytes / 1024 / 1024) + " МБ");
+            }
+            Instant now = Instant.now();
+            return localStore.presign(UploadKeys.objectKey(request.folder(), now, UUID.randomUUID()), ttlSeconds, now);
+        }
         if (endpoint.isEmpty() || bucket.isEmpty() || accessKeyId.isEmpty() || secretAccessKey.isEmpty() || publicBaseUrl.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Загрузка фото не настроена на сервере");
         }
